@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityStandardAssets.CrossPlatformInput;
 using UnityStandardAssets.Utility;
 using Random = UnityEngine.Random;
+using UnityEngine.SceneManagement;
 
 namespace UnityStandardAssets.Characters.FirstPerson
 {
@@ -29,25 +30,29 @@ namespace UnityStandardAssets.Characters.FirstPerson
         [SerializeField] private AudioClip m_LandSound;           // the sound played when character touches back on ground.
 
         private Camera m_Camera;
-        private bool m_Jump;
+        public bool m_Jump;
         private float m_YRotation;
         private Vector2 m_Input;
         private Vector3 m_MoveDir = Vector3.zero;
         private CharacterController m_CharacterController;
         private CollisionFlags m_CollisionFlags;
-        private bool m_PreviouslyGrounded;
+        public bool m_PreviouslyGrounded;
         private Vector3 m_OriginalCameraPosition;
         private float m_StepCycle;
         private float m_NextStep;
-        private bool m_Jumping;
+        public bool m_Jumping;
         private AudioSource m_AudioSource;
 
-        
+        public float lastPostY = 0f;
+        public float fallDistance = 0f;
+        public float fallDeathLimit = 10;
+        public GameObject player;
+
 
         // Use this for initialization
         private void Start()
         {
-            
+            player = gameObject;
             m_CharacterController = GetComponent<CharacterController>();
             m_Camera = Camera.main;
             m_OriginalCameraPosition = m_Camera.transform.localPosition;
@@ -60,10 +65,33 @@ namespace UnityStandardAssets.Characters.FirstPerson
 			m_MouseLook.Init(transform , m_Camera.transform);
         }
 
-
+        public void ApplyNormal()
+        {
+            fallDistance = 0;
+            lastPostY = 0;
+        }
         // Update is called once per frame
         private void Update()
         {
+            if(lastPostY > player.transform.position.y)
+            {
+                fallDistance += lastPostY - player.transform.position.y;
+            }
+
+            lastPostY = player.transform.position.y;
+
+            if(fallDistance >= fallDeathLimit && m_PreviouslyGrounded)
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+
+            if (fallDistance <= fallDeathLimit && m_PreviouslyGrounded)
+            {
+                ApplyNormal();
+            }
+            
+
+            
             RotateView();
             // the jump state needs to read here to make sure it is not missed
             if (!m_Jump)
